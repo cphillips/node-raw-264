@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [{
+     "type": "lldb",
+     "request": "launch",
+     "name": "Debug",
+     "preLaunchTask": "npm: build:dev",
+     "cwd":"${workspaceFolder}",
+     "program": "node",
+     "args": [
+        "./test/test-binding.js"
+     ]
+  }]
+}
