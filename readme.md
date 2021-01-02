@@ -16,27 +16,27 @@ I wanted to decode the video coming from the tello drone
 ## Uses Browser Media Source API
 - https://github.com/xevojapan/h264-converter
 
-# Web Asm and Android Source Code
+## Web Asm and Android Source Code
 - https://github.com/oneam/h264bsd
 - https://github.com/udevbe/tinyh264
 - https://github.com/mbebenita/Broadway
 - https://github.com/gliese1337/h264decoder
 
-# Web Asm and libav ( the one from FFMPEG )
+## Web Asm and libav ( the one from FFMPEG )
 - https://github.com/shengbinmeng/ffmpeg-h264-dec
 
-# Pure javascript decoders 
+## Pure javascript decoders 
 - https://github.com/phoboslab/jsmpeg ( typically with ffmpeg transforming the data)
 
-# Native Node Libraries
+## Native Node Libraries
 - https://github.com/Streampunk/beamcoder
 
-# Spawn FFMPEG CLI ( typically with jsmpeg as viewer )
+## Spawn FFMPEG CLI ( typically with jsmpeg as viewer )
 - https://github.com/johnwalicki/Node-RED-DroneViewer
 - https://github.com/SovGVD/nodetello
 - and many, many more
 
-# Other ( non JS )
+## Other ( non JS )
 - https://github.com/SMerrony/tello
 - https://github.com/bgromov/TelloSwift
 
