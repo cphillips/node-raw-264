@@ -19,8 +19,11 @@ async function testBasic()
       instance.decode(frag)
       buffer.push(frag)
       if(frag.length != 1460){
+        const frames = instance.decode(Buffer.concat(buffer))
         console.log(instance.decode(Buffer.concat(buffer)))
         buffer = []
+        if(frames.length > 0)
+          await fs.writeFile(`./test/frame_${i}.bmp`,frames[0].buffer)
       }
     }
 
