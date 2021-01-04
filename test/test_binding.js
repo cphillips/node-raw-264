@@ -1,40 +1,39 @@
-const TelloVideo = require("../dist/binding.js")
+//const { decode } = require("../dist/binding.js")
 const assert = require("assert")
-const fs = require('fs/promises')
+const fs = require('fs').promises
+const addon = require('../build/Debug/node-raw-264')
 
-assert(TelloVideo, "The expected module is undefined");
+async function decode(buffer){
+  return new Promise((resolve, reject)=>{
+    addon.decode(buffer,(arg,frames)=>{
+      resolve(frames)
+    })
+  })
+}
 
-async function testBasic()
-{
-    const instance = new TelloVideo("mr-yeoman");
-    assert(instance.greet, ".greet is not defined");
-    assert(instance.decode, ".decode is not defined");
+async function testBasic() {
 
-  
-    //assert.strictEqual(instance.greet("kermit"), "mr-yeoman", "Unexpected value returned");
-    //assert.strictEqual(instance.decode(new ArrayBuffer()), {}, "Decode");
-    let buffer = []
-    for(let i=1; i<300;i++){
-      const frag = await fs.readFile(`./test/data/frag_${i}.h264`)
-      instance.decode(frag)
-      buffer.push(frag)
-      if(frag.length != 1460){
-        const frames = instance.decode(Buffer.concat(buffer))
-        console.log(instance.decode(Buffer.concat(buffer)))
-        buffer = []
-        if(frames.length > 0)
-          await fs.writeFile(`./test/frame_${i}.bmp`,frames[0].buffer)
-      }
+  // addon.decode(Buffer.from([0]), (arg1, arg2) => {
+  //   console.log(arg1)
+  //   console.log(arg2)
+  // })
+
+  let buffer = []
+  for (let i = 1; i < 300; i++) {
+    const frag = await fs.readFile(`./test/data/frag_${i}.h264`)
+    buffer.push(frag)
+    if (frag.length != 1460) {
+      const bufferIn = Buffer.concat(buffer)
+      buffer = []
+      const frames = await decode(bufferIn)
+      console.log(frames)
+      
     }
+  }
 
 }
 
-function testInvalidParams()
-{
-    const instance = new TelloVideo();
-}
 
-assert.doesNotThrow(testBasic, undefined, "testBasic threw an expection");
-assert.throws(testInvalidParams, undefined, "testInvalidParams didn't throw");
+testBasic()
 
-console.log("Tests passed- everything looks OK!");
+console.log("Tests Complete")

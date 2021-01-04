@@ -5,10 +5,10 @@
      "request": "launch",
      "name": "Debug",
      "preLaunchTask": "npm: build:dev",
-     "cwd":"${workspaceFolder}",
-     "program": "node",
+     //"cwd":"${workspaceFolder}",
+     "program": "/usr/local/bin/node",
      "args": [
-        "./test/test-binding.js"
+        "/Users/cphil/projects/kids-school/node-raw-264/test/test_binding.js"
      ]
   }]
 }

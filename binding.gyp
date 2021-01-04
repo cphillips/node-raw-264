@@ -3,8 +3,8 @@
     {
       'target_name': 'node-raw-264',
       'sources': [ 
-        'src/raw_264.cc',
-        'src/h264_decoder.cc'
+        'src/h264_decoder.cc',
+        'src/async_decoder.cc'
        ],
       'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")"],
       'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
