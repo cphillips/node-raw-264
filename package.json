@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc && node-gyp build --debug",
     "build:dev": "node-gyp build --debug",
-    "pretest": "tsc && node-gyp build --debug",
+    "pretest": "tsc && node-gyp rebuild",
     "test": "node --napi-modules ./test/test_binding.js"
   },
   "gypfile": true,

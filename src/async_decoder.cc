@@ -4,9 +4,15 @@
 #include <iostream>
 #include <vector>
 #include <tuple>
+#include <thread>
+#include <chrono>
 
 typedef unsigned char ubyte;
+typedef std::tuple<int, int, int, ubyte *, size_t> FrameInfo;
 
+    H264Decoder _decoder;
+    ConverterRGB24 _converter;
+    
 class AsyncDecoder : public Napi::AsyncWorker
 {
 public:
@@ -36,38 +42,30 @@ public:
     }
 
     Napi::Buffer<ubyte> bufferIn = info[0].As<Napi::Buffer<ubyte>>();
-    Napi::Function callback = info[1].As<Napi::Function>();
+    
+    // Napi::Function callback = info[1].As<Napi::Function>();
+    //AsyncDecoder *asyncWorker = new AsyncDecoder(callback, bufferIn);
+    //asyncWorker->Queue();
 
-    //passing in the data direction worked
-    AsyncDecoder *asyncWorker = new AsyncDecoder(callback, bufferIn.Data(), bufferIn.ByteLength());
-    asyncWorker->Queue();
+    std::vector<FrameInfo> frames = DecodeImpl(bufferIn.Data(), bufferIn.ByteLength());
 
-    //asyncWorker->Execute();
-
-    return env.Undefined();
+    return ToNodeArray(env, frames);
   }
 
-protected:
-  AsyncDecoder(Napi::Function callback, ubyte *dataIn, size_t dataInLen)
-      : Napi::AsyncWorker(callback), _dataIn(dataIn), _dataInLen(dataInLen)
+private:
+  //this allocates memory, caller must delete
+  static std::vector<FrameInfo> DecodeImpl(ubyte *dataIn, size_t dataInLen)
   {
-    //_bufferIn = Napi::Reference<Napi::Buffer<ubyte>>::New(bufferIn,1);
-    //_dataIn = dataIn;
-    //_dataInLen = dataInLen;
-  }
-
-  void Execute() override
-  {
-
+    std::vector<FrameInfo> frames;
     try
     {
       size_t bytesConsumed = 0;
 
-      while (_dataInLen > 0)
+      while (dataInLen > 0)
       {
-        bytesConsumed = _decoder.parse(_dataIn, _dataInLen);
-
-        //std::cout << "bytesConsumed:" << bytesConsumed << std::endl;
+   
+        bytesConsumed = _decoder.parse(dataIn, dataInLen);
+        std::cout << "BUFFER_PARSED!" << std::endl;
 
         if (_decoder.is_frame_available())
         {
@@ -84,44 +82,41 @@ protected:
             const AVFrame &rgbFrame = _converter.convert(frame, bufferOut);
 
             auto frameInfo = std::make_tuple(w, h, row_size(rgbFrame), bufferOut, outSize);
-            _frames.push_back(frameInfo);
+            frames.push_back(frameInfo);
           }
           catch (...)
           {
+            std::cout << "FRAME_DECODED_FAILED!" << std::endl;
           }
-          //std::cout << "_dataInLen:" << _dataInLen << std::endl;
         }
 
-        _dataInLen -= bytesConsumed;
-        _dataIn += bytesConsumed;
-
-        //std::cout << "EXIT" << std::endl;
+        dataInLen -= bytesConsumed;
+        dataIn += bytesConsumed;
       }
     }
     catch (const std::exception &exc)
     {
       std::cout << exc.what();
     }
+    return frames;
   }
 
-  virtual void OnOK() override
+  static Napi::Array ToNodeArray(Napi::Env env, std::vector<FrameInfo> frames)
   {
-    Napi::Array frames = Napi::Array::New(Env());
+    Napi::Array frameArray = Napi::Array::New(env);
 
-    //std::cout << _frames.size();
-
-    for (std::vector<int>::size_type i = 0; i != _frames.size(); i++)
+    for (std::vector<int>::size_type i = 0; i != frames.size(); i++)
     {
 
-      Napi::Object frameInfo = Napi::Object::New(Env());
+      Napi::Object frameInfo = Napi::Object::New(env);
 
-      auto width = std::get<0>(_frames[i]);
-      auto height = std::get<1>(_frames[i]);
-      auto rowSize = std::get<2>(_frames[i]);
-      auto buffer = std::get<3>(_frames[i]);
-      auto bufferLen = std::get<4>(_frames[i]);
+      auto width = std::get<0>(frames[i]);
+      auto height = std::get<1>(frames[i]);
+      auto rowSize = std::get<2>(frames[i]);
+      auto buffer = std::get<3>(frames[i]);
+      auto bufferLen = std::get<4>(frames[i]);
       Napi::Buffer<ubyte> frameBuffer =
-          Napi::Buffer<ubyte>::New(Env(), buffer, bufferLen);
+          Napi::Buffer<ubyte>::New(env, buffer, bufferLen);
 
       frameBuffer.AddFinalizer(
           [](Napi::Env /*env*/, ubyte *ref) {
@@ -134,10 +129,28 @@ protected:
       frameInfo.Set("rowSize", rowSize);
       frameInfo.Set("frame", frameBuffer);
 
-      frames.Set(i, frameInfo);
+      frameArray.Set(i, frameInfo);
     }
 
-    Callback().Call({Env().Null(), frames});
+    return frameArray;
+  }
+
+protected:
+  AsyncDecoder(Napi::Function callback, Napi::Buffer<ubyte> &buffer)
+      : Napi::AsyncWorker(callback),
+        _bufferInRef(Napi::Reference<Napi::Buffer<ubyte>>::New(buffer)),
+        _dataIn(buffer.Data()),
+        _dataInLen(buffer.ByteLength()){}
+
+  void Execute() override
+  {
+    _framesOut = DecodeImpl(_dataIn, _dataInLen);
+  }
+
+  virtual void OnOK() override
+  {
+    auto framesOut = ToNodeArray(Env(),_framesOut);
+    Callback().Call({Env().Null(),framesOut});
   }
 
   virtual void OnError(const Napi::Error &e) override
@@ -145,18 +158,14 @@ protected:
   }
 
 private:
-  std::vector<std::tuple<size_t, size_t, size_t, ubyte *, size_t>> _frames;
-  Napi::Reference<Napi::Buffer<ubyte>> _bufferIn;
+  std::vector<FrameInfo> _framesOut;
+  Napi::Reference<Napi::Buffer<ubyte>> _bufferInRef;
   ubyte *_dataIn;
   size_t _dataInLen;
-  H264Decoder _decoder;
-  ConverterRGB24 _converter;
 };
 
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
-  //return Napi::Function::New(env, AsyncDecoder::Decode);
-
   exports.Set(
       Napi::String::New(env, "decode"), Napi::Function::New(env, AsyncDecoder::Decode));
   return exports;
