@@ -13,7 +13,7 @@
     "build": "tsc && node-gyp build --debug",
     "build:dev": "node-gyp build --debug",
     "pretest": "tsc && node-gyp rebuild",
-    "test": "node --napi-modules ./test/test_binding.js"
+    "test": "node --napi-modules ./dist/raw-264.test.js"
   },
   "gypfile": true,
   "devDependencies": {

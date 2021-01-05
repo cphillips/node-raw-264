@@ -1,58 +1,87 @@
-#include "async_decoder.h"
-#include "raw_264.h"
 
 #include <napi.h>
+#include <iostream>
+#include "h264_decoder.h"
 
-Raw264::Raw264(const Napi::CallbackInfo &);
+typedef unsigned char ubyte;
 
-Napi::Value Raw264::Decode(const Napi::CallbackInfo &)
+class Raw264 : public Napi::ObjectWrap<Raw264>
 {
-  static Napi::Value Decode(const Napi::CallbackInfo &info)
+public:
+  Raw264(const Napi::CallbackInfo &info)
+      : ObjectWrap(info) {}
+
+  Napi::Value Decode(const Napi::CallbackInfo &info)
   {
     Napi::Env env = info.Env();
 
-    if (info.Length() < 1)
-    {
-      Napi::TypeError::New(env, "Missing Arguments")
-          .ThrowAsJavaScriptException();
-      return env.Null();
-    }
+    Napi::Array result = Napi::Array::New(env);
 
-    if (!info[0].IsBuffer())
+    if (info.Length() < 1 || !info[0].IsBuffer())
     {
-      Napi::TypeError::New(env, "Buffer is required")
-          .ThrowAsJavaScriptException();
-      return env.Null();
-    }
-
-    if (!info[1].IsFunction())
-    {
-      Napi::TypeError::New(env, "Callback is required")
-          .ThrowAsJavaScriptException();
-      return env.Null();
+      Napi::TypeError::New(env, "Argument is not an Buffer.").ThrowAsJavaScriptException();
+      return result;
     }
 
     Napi::Buffer<ubyte> bufferIn = info[0].As<Napi::Buffer<ubyte>>();
 
-    Napi::Function callback = info[1].As<Napi::Function>();
-    
-    AsyncDecoder *asyncWorker = new AsyncDecoder(callback, bufferIn);
-    asyncWorker->Queue();
+    size_t bufferInLen = bufferIn.ByteLength();
+    size_t bytesConsumed = 0;
+    ubyte *dataIn = bufferIn.Data();
+    int frameIndex = 0;
 
-    //std::vector<FrameInfo> frames = DecodeImpl(bufferIn.Data(), bufferIn.ByteLength());
+    while (bufferInLen > 0)
+    {
+      bytesConsumed = _decoder.parse(dataIn, bufferInLen);
 
-    //return ToNodeArray(env, frames);
-    return env.Undefined();
+      if (_decoder.is_frame_available())
+      {
+        Napi::Object frameInfo = Napi::Object::New(env);
+
+        try
+        {
+          const auto &frame = _decoder.decode_frame();
+
+          int w, h;
+          std::tie(w, h) = width_height(frame);
+          ssize_t outSize = _converter.predict_size(w, h);
+          Napi::Buffer<ubyte> bufferOut = Napi::Buffer<ubyte>::New(env, outSize);
+          const AVFrame &rgbFrame = _converter.convert(frame, bufferOut.Data());
+
+          frameInfo.Set("buffer", bufferOut);
+          frameInfo.Set("width", w);
+          frameInfo.Set("height", h);
+          frameInfo.Set("rowSize", row_size(rgbFrame));
+
+          result.Set(frameIndex, frameInfo);
+
+          frameIndex++;
+        }
+        catch (const H264DecodeFailure &e)
+        {
+        }
+      }
+
+      bufferInLen -= bytesConsumed;
+      dataIn += bytesConsumed;
+    }
+
+    return result;
   }
-}
+
+private:
+  H264Decoder _decoder;
+  ConverterRGB24 _converter;
+};
 
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
-  Napi::String name = Napi::String::New(env, "Raw264");
-  exports.Set(name, DefineClass(env,
-                                name,
-                                {InstanceMethod("decode", &Raw264::Decode)}));
 
+  const char *name = "Raw264";
+  exports.Set(name,
+              Raw264::DefineClass(env, name, {
+                Raw264::InstanceMethod("decode", &Raw264::Decode)
+              }));
   return exports;
 }
 
