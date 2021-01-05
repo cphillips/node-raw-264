@@ -8,7 +8,7 @@
      //"cwd":"${workspaceFolder}",
      "program": "/usr/local/bin/node",
      "args": [
-        "/Users/cphil/projects/kids-school/node-raw-264/test/test_binding.js"
+        "/Users/cphil/projects/kids-school/node-raw-264/dist/raw-264.test.js"
      ]
   }]
 }

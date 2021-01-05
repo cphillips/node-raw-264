@@ -1,4 +1,4 @@
-import fs from 'fs/promises'
+import * as fs from 'fs/promises'
 import { Raw264 } from './raw-264'
 
 async function testBasic() {
