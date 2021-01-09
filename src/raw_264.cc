@@ -45,8 +45,8 @@ public:
           int w, h;
           std::tie(w, h) = width_height(frame);
           ssize_t outSize = _converter.predict_size(w, h);
-          Napi::Buffer<ubyte> bufferOut = Napi::Buffer<ubyte>::New(env, outSize);
-          const AVFrame &rgbFrame = _converter.convert(frame, bufferOut.Data());
+          Napi::ArrayBuffer bufferOut = Napi::ArrayBuffer::New(env, outSize);
+          const AVFrame &rgbFrame = _converter.convert(frame, (ubyte*)bufferOut.Data());
 
           frameInfo.Set("buffer", bufferOut);
           frameInfo.Set("width", w);

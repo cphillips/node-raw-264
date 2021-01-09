@@ -6,7 +6,9 @@ I wanted to decode the video coming from the tello drone
 
 - I liked the projects that used emscripten, it's a cool approach. However, I wasn't able to make one work.
 
-- For browser side, h264-converter is really well done, and works well, I like that it use thes native video player and Media Source API
+- For browser side, h264-converter is really well done, and works well, I like that it use the native video player and Media Source API
+
+- I decide to make the API synchronous, because I was uncertain about how libav needs data feed to it, for example if data is out of order, can libav handle it? Is libav thread safe is it re-entrant? It wasn't documented well enough for me to easily know, so I used workers-threads and transfer lists is  the consuming application. I thought about just using an internal queue to deal with those issues, but code complexity and testing requirements would be larger
 
 # Reference projects
 
