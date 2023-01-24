@@ -6,8 +6,13 @@
         'src/h264_decoder.cc',
         'src/raw_264.cc'
        ],
-      'include_dirs': ["<!@(node -p \"require('node-addon-api').include\")"],
-      'dependencies': ["<!(node -p \"require('node-addon-api').gyp\")"],
+      'include_dirs': [
+        "<!@(node -p \"require('node-addon-api').include\")",
+        "/usr/include/x86_64-linux-gnu"
+       ],
+      'dependencies': [
+        "<!(node -p \"require('node-addon-api').gyp\")"
+      ],
       'cflags!': [ '-fno-exceptions' ],
       'cflags_cc!': [ '-fno-exceptions' ],
       'xcode_settings': {
@@ -20,9 +25,9 @@
       },
       'link_settings':{
         'libraries':[
-          '/usr/local/lib/libavcodec.dylib',
-          '/usr/local/lib/libswscale.dylib',
-          '/usr/local/lib/libavutil.dylib'
+          '/usr/lib/x86_64-linux-gnu/libavcodec.so',
+          '/usr/lib/x86_64-linux-gnu/libswscale.so',
+          '/usr/lib/x86_64-linux-gnu/libavutil.so'
         ]
       }
     }
